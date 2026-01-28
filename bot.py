@@ -128,32 +128,13 @@ async def forward_media_range(chat_id: int, chat_name: str, start_id: int, end_i
     total_skipped = 0
     message_id = start_id
     
-    # Count total media first
+    # Start forwarding immediately - NO COUNTING
     await status_msg.edit_text(
-        f"🔍 Counting media in range...\n"
-        f"From: #{start_id} to #{end_id}",
-        reply_markup=None
-    )
-    
-    total_media = 0
-    for msg_id_check in range(start_id, end_id + 1):
-        try:
-            msg = await userbot.get_messages(chat_id, ids=msg_id_check)
-            if msg and msg.media and not msg.noforwards:
-                if not isinstance(msg.media, (MessageMediaWebPage, MessageMediaUnsupported)):
-                    if msg.photo or msg.document or msg.video:
-                        total_media += 1
-        except:
-            pass
-    
-    # Start forwarding
-    await status_msg.edit_text(
-        f"📤 **Forwarding Media**\n"
+        f"📤 **Forwarding Started**\n"
         f"📢 {chat_name}\n"
         f"🆔 `{chat_id}`\n\n"
-        f"📊 Total Media Found: {total_media}\n"
         f"📍 Range: #{start_id} → #{end_id}\n"
-        f"🚀 Progress: {total_forwarded}/{total_media}"
+        f"🚀 Progress: {total_forwarded} forwarded..."
     )
     
     while message_id <= end_id:
@@ -196,30 +177,33 @@ async def forward_media_range(chat_id: int, chat_name: str, start_id: int, end_i
             else:
                 total_skipped += 1
             
-            # Update status every 5 messages
-            if message_id % 5 == 0:
+            # Update status every 10 messages
+            if message_id % 10 == 0:
                 try:
                     await status_msg.edit_text(
                         f"📤 **Forwarding...**\n"
                         f"📢 {chat_name}\n"
-                        f"🚀 Progress: {total_forwarded}/{total_media}\n"
                         f"📍 Current: #{message_id}/{end_id}\n"
-                        f"⏭️ Skipped: {total_skipped}"
+                        f"✅ Forwarded: {total_forwarded}"
                     )
                 except:
                     pass
             
-            # Telegram ToS delay
+            # Telegram ToS delay - 5 seconds between each forward
             await asyncio.sleep(5)
             message_id += 1
             
         except FloodWaitError as e:
+            # Handle Telegram rate limiting
             await status_msg.edit_text(
-                f"⏳ **FloodWait Triggered**\n"
+                f"⏳ **Telegram Rate Limited**\n"
                 f"⏰ Waiting {e.seconds} seconds...\n\n"
-                f"Progress: {total_forwarded}/{total_media}"
+                f"✅ Forwarded so far: {total_forwarded}\n"
+                f"📍 Resuming at: #{message_id}"
             )
+            print(f"⏳ FloodWait triggered! Waiting {e.seconds} seconds...")
             await asyncio.sleep(e.seconds)
+            print(f"✅ Resuming forwarding...")
             
         except Exception as e:
             print(f"❌ Error at message #{message_id}: {e}")
@@ -230,7 +214,7 @@ async def forward_media_range(chat_id: int, chat_name: str, start_id: int, end_i
     await status_msg.edit_text(
         f"✅ **Forwarding Complete!**\n\n"
         f"📢 {chat_name}\n"
-        f"✅ Forwarded: {total_forwarded}/{total_media}\n"
+        f"✅ Total Forwarded: {total_forwarded}\n"
         f"⏭️ Skipped: {total_skipped}\n"
         f"📍 Range: #{start_id} → #{end_id}"
     )
